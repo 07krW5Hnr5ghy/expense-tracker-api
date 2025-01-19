@@ -1,10 +1,34 @@
 const Expense = require('../models/expenseModel');
+const CustomError = require('../utils/customError');
 
 // Create an Expense
-const createExpense = async (req, res) => {
-    const { title, amount, category, date } = req.body;
-
+const createExpense = async (req, res,next) => {
+    
     try {
+        const { title, amount, category, date } = req.body;
+
+        if (!title || !amount || !category || !date) {
+            throw new CustomError("Title, amount, category and date are required fields.", 400);
+        }
+
+        if (amount < 0.01) {
+            throw new CustomError("Amount must be a positive value.", 400);
+        }
+
+        const validCategories = [
+            "Groceries",
+            "Leisure",
+            "Electronics",
+            "Utilities",
+            "Clothing",
+            "Health",
+            "Others",
+        ];
+
+        if (!validCategories.includes(category)) {
+            throw new CustomError(`Invalid category. Must be one of: ${validCategories.join(", ")}`, 400);
+        }
+
         const expense = await Expense.create({
             userId: req.user._id,
             title,
@@ -15,7 +39,7 @@ const createExpense = async (req, res) => {
 
         res.status(201).json(expense);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 
@@ -40,6 +64,25 @@ const getExpenses = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Get expense by Id
+const getExpenseById = async (req,res,next) => {
+    try {
+        const expense = await Expense.findById(req.params.id);
+
+        if (!expense) {
+            throw new CustomError("Expense not found.", 404);
+        }
+
+        if (expense.userId.toString() !== req.user.id) {
+            throw new CustomError("You do not have permission to view this expense.", 403);
+        }
+
+        res.status(200).json(expense);
+    } catch (error) {
+        next(error);
+    }
+}
 
 // Update an Expense
 const updateExpense = async (req, res) => {
@@ -88,6 +131,7 @@ const deleteExpense = async (req, res) => {
 module.exports = {
     createExpense,
     getExpenses,
+    getExpenseById,
     updateExpense,
     deleteExpense,
 };
