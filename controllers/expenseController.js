@@ -57,7 +57,9 @@ const getExpenses = async (req, res, next) => {
             filter.date = { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) };
         } else if (timeTerm === "past_month") {
             filter.date = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
-        }else if (timeTerm === "custom"){
+        } else if (timeTerm === "last_3_month") {
+            filter.date = { $gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) };
+        } else if (timeTerm === "custom"){
             if (startDate || endDate) {
                 filter.date = {};
                 if (startDate) filter.date.$gte = new Date(startDate);
