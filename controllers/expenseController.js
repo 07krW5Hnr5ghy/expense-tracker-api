@@ -2,7 +2,7 @@ const Expense = require('../models/expenseModel');
 const CustomError = require('../utils/customError');
 
 // Create an Expense
-const createExpense = async (req, res,next) => {
+const createExpense = async (req, res, next) => {
     
     try {
         const { title, amount, category, date } = req.body;
@@ -44,24 +44,37 @@ const createExpense = async (req, res,next) => {
 };
 
 // Get All Expenses with Filters
-const getExpenses = async (req, res) => {
-    const { startDate, endDate, category } = req.query;
+const getExpenses = async (req, res, next) => {
+    const { startDate, endDate, category,timeTerm,page = 1, limit = 10 } = req.query;
 
     try {
         const filter = { userId: req.user._id };
-        if (startDate || endDate) {
-            filter.date = {};
-            if (startDate) filter.date.$gte = new Date(startDate);
-            if (endDate) filter.date.$lte = new Date(endDate);
-        }
+        
         if (category) {
             filter.category = category;
         }
+        if (timeTerm === "past_week") {
+            filter.date = { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) };
+        } else if (timeTerm === "past_month") {
+            filter.date = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+        }else if (timeTerm === "custom"){
+            if (startDate || endDate) {
+                filter.date = {};
+                if (startDate) filter.date.$gte = new Date(startDate);
+                if (endDate) filter.date.$lte = new Date(endDate);
+            }
+        }
 
-        const expenses = await Expense.find(filter).sort({ date: -1 });
-        res.status(200).json(expenses);
+        const expenses = await Expense.find(filter)
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .sort({ date: -1 });
+
+        const total = await Expense.countDocuments(filter);
+
+        res.status(200).json({ data: expenses, page: Number(page), limit: Number(limit), total });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 
@@ -85,14 +98,14 @@ const getExpenseById = async (req,res,next) => {
 }
 
 // Update an Expense
-const updateExpense = async (req, res) => {
+const updateExpense = async (req, res, next) => {
     const { id } = req.params;
     const { title, amount, category, date } = req.body;
 
     try {
         const expense = await Expense.findOne({ _id: id, userId: req.user._id });
         if (!expense) {
-            return res.status(404).json({ message: 'Expense not found' });
+            throw new CustomError("Expense not found.", 404);
         }
 
         expense.title = title || expense.title;
@@ -104,12 +117,12 @@ const updateExpense = async (req, res) => {
 
         res.status(200).json(expense);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 
 // Delete an Expense
-const deleteExpense = async (req, res) => {
+const deleteExpense = async (req, res, next) => {
     const { id } = req.params;
 
     try {
@@ -119,12 +132,12 @@ const deleteExpense = async (req, res) => {
         });
 
         if (!expense) {
-            return res.status(404).json({ message: 'Expense not found' });
+            throw new CustomError("Expense not found.", 404);
         }
 
         res.status(204).send();
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 

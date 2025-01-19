@@ -4,9 +4,6 @@ const CustomError = require('../utils/customError');
 
 const protect = async (req, res, next) => {
     let token;
-    if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
-    }
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             token = req.headers.authorization.split(' ')[1];
@@ -16,6 +13,9 @@ const protect = async (req, res, next) => {
         } catch (error) {
             next(new CustomError("Invalid authentication token.",401));
         }
+    }
+    if (!token) {
+        res.status(401).json({ message: 'Not authorized, no token' });
     }
 };
 

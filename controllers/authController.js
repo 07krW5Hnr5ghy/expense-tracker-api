@@ -9,13 +9,18 @@ const generateToken = (id) => {
 
 // Signup
 const signup = async (req, res) => {
-    const { name, email, password } = req.body;
-
+    
     try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            throw new CustomError("Name, email, and password are required.", 400);
+        }
+
         // Check if user already exists
         const userExists = await User.findOne({ email });
         if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
+            throw new CustomError("Email is already in use.", 400);
         }
 
         // Create new user
@@ -29,15 +34,18 @@ const signup = async (req, res) => {
             token: generateToken(user._id),
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 
 // Login
 const login = async (req, res) => {
-    const { email, password } = req.body;
 
     try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            throw new CustomError("Email and password are required.", 400);
+        }
         // Find user by email
         const user = await User.findOne({ email });
 
@@ -50,10 +58,10 @@ const login = async (req, res) => {
                 token: generateToken(user._id),
             });
         } else {
-            res.status(400).json({ message: 'Invalid email or password' });
+            throw new CustomError("Invalid email or password.", 401);
         }
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 
