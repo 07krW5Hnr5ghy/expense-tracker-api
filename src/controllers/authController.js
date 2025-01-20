@@ -1,6 +1,8 @@
-const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+
+const User = require('../models/userModel');
+const CustomError = require('../utils/customError');
 
 // Generate JWT
 const generateToken = (id) => {
@@ -8,7 +10,7 @@ const generateToken = (id) => {
 };
 
 // Signup
-const signup = async (req, res) => {
+const signup = async (req, res, next) => {
     
     try {
         const { name, email, password } = req.body;
@@ -39,10 +41,11 @@ const signup = async (req, res) => {
 };
 
 // Login
-const login = async (req, res) => {
+const login = async (req, res, next) => {
 
     try {
         const { email, password } = req.body;
+        
         if (!email || !password) {
             throw new CustomError("Email and password are required.", 400);
         }
